@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>دعوة ملكة لمار + وليد كادو</title>
+<style>
+body{font-family:Tahoma, Arial, sans-serif;background:#f7f5f8;color:#222;padding:24px}
+.card{max-width:760px;margin:18px auto;background:#fff;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,0.08);overflow:hidden}
+header{padding:28px 30px;border-bottom:1px solid #f0ecf2;background:linear-gradient(90deg,rgba(179,59,138,0.06),rgba(179,59,138,0.02))}
+h1{margin:0;font-size:22px;color:#b33b8a}
+.subtitle{color:#666;margin-top:6px}
+.content{padding:22px}
+.actions{display:flex;gap:12px;flex-wrap:wrap}
+button{cursor:pointer;padding:12px 16px;border-radius:10px;border:0;background:#b33b8a;color:#fff;font-weight:600}
+button.secondary{background:#efefef;color:#333}
+.guest-list{margin-top:18px}
+.guest-list h3{margin:0 0 8px 0}
+ul{list-style:none;padding:0;margin:0}
+li{padding:10px 12px;border-radius:8px;border:1px solid #f0edf2;margin-bottom:8px;background:#fff;display:flex;justify-content:space-between}
+.status.accept{color:green;font-weight:700}
+.status.decline{color:#d9534f;font-weight:700}
+.small{font-size:13px;color:#666}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;padding:20px}
+.modal{background:#fff;padding:18px;border-radius:12px;max-width:440px;width:100%}
+.field{margin-top:12px}
+input[type=text]{width:100%;padding:10px;border-radius:8px;border:1px solid #e6e4e8}
+.row{display:flex;gap:10px;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="card">
+  <header>
+    <h1>دعوة ملكة لمار + وليد كادو</h1>
+    <div class="subtitle">الجمعة 01/01/2026 - قاعة أصيلة · جدة · حي أبحر الشمالية · الساعة 9:00 م</div>
+  </header>
+  <div class="content">
+    <p class="small">اضغط "أقبل الحضور" أو "أعتذر عن الحضور" ثم اكتب اسمك للتأكيد.</p>
+    <div class="actions">
+      <button id="acceptBtn">✅ أقبل الحضور</button>
+      <button id="declineBtn" class="secondary">❌ أعتذر عن الحضور</button>
+    </div>
+    <div class="guest-list">
+      <h3>قائمة الردود</h3>
+      <ul id="responses"></ul>
+    </div>
+  </div>
+</div>
+<div id="modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="modal">
+    <h2 id="modalTitle">تأكيد الحضور</h2>
+    <p id="modalText" class="small">اكتب اسمك للتأكيد:</p>
+    <div class="field">
+      <input id="guestName" type="text" placeholder="اكتب اسمك هنا" />
+    </div>
+    <div class="row">
+      <button id="submitBtn">إرسال</button>
+      <button id="cancelBtn" class="secondary">إلغاء</button>
+    </div>
+  </div>
+</div>
+<script>
+const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyWOvknJ-vqveZeWN4rIe4a95UZ2HiIuL-4HOe9_O8I4u7HGz8dCsSDbXV3m31QdV-Z/exec";
+const acceptBtn = document.getElementById('acceptBtn');
+const declineBtn = document.getElementById('declineBtn');
+const modal = document.getElementById('modal');
+const modalTitle = document.getElementById('modalTitle');
+const modalText = document.getElementById('modalText');
+const guestName = document.getElementById('guestName');
+const submitBtn = document.getElementById('submitBtn');
+const cancelBtn = document.getElementById('cancelBtn');
+const responsesEl = document.getElementById('responses');
+let responses = [];
+let currentChoice = null;
+function renderResponses(){
+  responsesEl.innerHTML = '';
+  if(responses.length === 0){responsesEl.innerHTML = '<li class="small">لا توجد ردود حتى الآن.</li>';return;}
+  responses.forEach(r=>{
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${r.name}</span><span class="status ${r.choice}">${r.choice==='accept'?'حضر':'اعتذر'}</span>`;
+    responsesEl.appendChild(li);
+  });
+}
+function openModal(choice){
+  currentChoice = choice;
+  modalTitle.textContent = choice==='accept'?'أقبل الحضور':'أعتذر عن الحضور';
+  modalText.textContent = 'اكتب اسمك للتأكيد:';
+  guestName.value = '';
+  modal.style.display = 'flex';
+  guestName.focus();
+}
+function closeModal(){modal.style.display='none';}
+acceptBtn.addEventListener('click',()=>openModal('accept'));
+declineBtn.addEventListener('click',()=>openModal('decline'));
+cancelBtn.addEventListener('click',closeModal);
+submitBtn.addEventListener('click',()=>{
+  const name = guestName.value.trim();
+  if(!name){alert('الرجاء كتابة الاسم');guestName.focus();return;}
+  const entry = {name,currentChoice,date:new Date().toISOString()};
+  responses.push(entry);
+  renderResponses();
+  closeModal();
+  if(WEBHOOK_URL){
+    fetch(WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:entry.name,choice:entry.currentChoice})}).catch(err=>console.warn('Webhook send failed',err));
+  }
+});
+modal.addEventListener('click',(e)=>{if(e.target===modal) closeModal();});
+renderResponses();
+</script>
+</body>
+</html>
